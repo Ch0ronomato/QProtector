@@ -6,11 +6,11 @@ title:  Team
 # {{ page.title }}
 
 
-## USER 1
-***UCI Net ID***: ucinetid
+## Ian Schweer
+***UCI Net ID***: ischweer@uci.edu 
 
-## USER 2
-***UCI Net ID***: ucinetid
+## Allen Sallinger
+***UCI Net ID***: asalling@uci.edu 
 
-## USER 3
-***UCI Net ID***: ucinetid
+## Travis ChangU
+***UCI Net ID***: travisc1@uci.edu 
