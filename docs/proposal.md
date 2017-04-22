@@ -4,6 +4,7 @@ title: Proposal
 ---
 
 ## Summary
+
 ### Proposal Idea:
 The purpose of our AI is to act as a body guard for a specified target. This target may be a user, character, or structure, but for our purposes we will use a sheep. The AI will protect the sheep from all surrounding enemies. We will be using reinforcement learning to train our AI with a reward being the time that our protected target is alive and the negative reward being the destruction of said target. The purposes of this AI can be protecting an asset(house/mine/village), protecting a being while harvesting, or acting as a century to protect a general point of interest.
 
@@ -15,3 +16,5 @@ For our evaluation we will be using a reward system consisting of the status of 
 
 Our first metric that we will be analyzing for our AI is how long it is able to keep the target sheep alive and how long it can keep our character alive with a heavier weight on keeping the sheep alive. The second metric once we can keep both alive while killing the enemy is how many enemies can our AI fight off. If these do not hold fruitful our backup metric for success will be how far can we keep the zombie away from the sheep. For all of these we will make a small visualizing log to see if these metrics are growing or receding with each iteration of our learning phase.
 
+### Appointment
+We are booked for 3:45 on April 27th.
