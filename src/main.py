@@ -37,7 +37,7 @@ def GetMissionXML(summary):
         <ServerSection>
             <ServerInitialConditions>
                 <Time>
-                    <StartTime>6000</StartTime>
+                    <StartTime>17000</StartTime>
                     <AllowPassageOfTime>false</AllowPassageOfTime>
                 </Time>
             </ServerInitialConditions>
@@ -47,9 +47,10 @@ def GetMissionXML(summary):
                     <DrawCuboid ''' + getCorner("1",True,True,expand=1) + " " + getCorner("2",False,False,y=226,expand=1) + ''' type="stone"/>
                     <DrawCuboid ''' + getCorner("1",True,True,y=207) + " " + getCorner("2",False,False,y=226) + ''' type="air"/>
 
-                    <DrawEntity x="2.5" y="207.0" z="0.5" type="Pig" />
+                    <DrawEntity x="2.5" y="207.0" z="0.5" type="Zombie" />
                 </DrawingDecorator>
                 <ServerQuitWhenAnyAgentFinishes />
+                <ServerQuitFromTimeUp timeLimitMs="5000"/>
             </ServerHandlers>
         </ServerSection>
 
@@ -159,7 +160,11 @@ if __name__ == '__main__':
         while not world_state.has_mission_begun:
             time.sleep(0.1)
             world_state = agent_host.getWorldState()
-            print world_state
+
+        print "started"
+        x = world_state.observations
+        for (k,v) in x:
+            print k
 
         # Every few iteration Chester will show us the best policy that he learned.
         # if (iRepeat + 1) % 5 == 0:

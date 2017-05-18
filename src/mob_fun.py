@@ -123,6 +123,7 @@ def getMissionXML(summary):
                 <RewardForCollectingItem>
                     <Item type="'''+GOAL_TYPE+'''" reward="'''+str(GOAL_REWARD)+'''"/>
                 </RewardForCollectingItem>
+                <AgentQuitFromTimeUp timeLimitMs="3000" description="Quiting"/>
             </AgentHandlers>
         </AgentSection>
 
