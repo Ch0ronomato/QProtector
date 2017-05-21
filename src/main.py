@@ -24,7 +24,6 @@ def getCorner(index,top,left,expand=0,y=206):
 
 def GetMissionXML(summary):
     ''' Build an XML mission string.'''
-    spawn_end_tag = 'type="Pig"/>'
     return '''<?xml version="1.0" encoding="UTF-8" ?>
     <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
         <About>
@@ -38,8 +37,9 @@ def GetMissionXML(summary):
             <ServerInitialConditions>
                 <Time>
                     <StartTime>17000</StartTime>
-                    <AllowPassageOfTime>false</AllowPassageOfTime>
+                    <AllowPassageOfTime>true</AllowPassageOfTime>
                 </Time>
+                <Weather>clear</Weather>
             </ServerInitialConditions>
             <ServerHandlers>
                 <FlatWorldGenerator generatorString="3;7,220*1,5*3,2;3;,biome_1" />
@@ -47,10 +47,10 @@ def GetMissionXML(summary):
                     <DrawCuboid ''' + getCorner("1",True,True,expand=1) + " " + getCorner("2",False,False,y=226,expand=1) + ''' type="stone"/>
                     <DrawCuboid ''' + getCorner("1",True,True,y=207) + " " + getCorner("2",False,False,y=226) + ''' type="air"/>
 
-                    <DrawEntity x="2.5" y="207.0" z="0.5" type="Zombie" />
+                    <DrawEntity x="4.5" y="207.0" z="0.5" type="Zombie" />
                 </DrawingDecorator>
                 <ServerQuitWhenAnyAgentFinishes />
-                <ServerQuitFromTimeUp timeLimitMs="5000"/>
+                <ServerQuitFromTimeUp timeLimitMs="30000"/>
             </ServerHandlers>
         </ServerSection>
 
@@ -160,11 +160,16 @@ if __name__ == '__main__':
         while not world_state.has_mission_begun:
             time.sleep(0.1)
             world_state = agent_host.getWorldState()
-
         print "started"
-        x = world_state.observations
-        for (k,v) in x:
-            print k
+        agent_host.sendCommand("chat /summon Villager ~ ~1 ~ {NoAI:1}")
+
+        while world_state.is_mission_running:
+            if world_state.number_of_observations_since_last_state > 0:
+                msg = world_state.observations[-1].text
+                observations = json.loads(msg)
+                print observations
+            time.sleep(0.1)
+            world_state = agent_host.getWorldState()
 
         # Every few iteration Chester will show us the best policy that he learned.
         # if (iRepeat + 1) % 5 == 0:
