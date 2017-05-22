@@ -168,12 +168,13 @@ class Protector(object):
                     current_r = self.act(agent_host, A[-1])
                     R.append(current_r)
 
-                    if current_r == -10000:
+                    if current_r == -10000 or current_r == 10000:
                         # Terminating state
                         T = t + 1
                         S.append('Term State')
                         present_reward = current_r
                         print "Reward:", present_reward
+                        print self.q_table
                         agent_host.sendCommand("quit")
                     else:
                         s = self.get_curr_state(agent_host)
