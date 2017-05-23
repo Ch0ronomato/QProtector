@@ -35,20 +35,39 @@ class Protector(object):
         self.n, self.gamma, self.alpha = n, gamma, alpha
 
     def position_states(self, agent_host):
-        """Returns the states of all the entities [px, pz, pyaw, vx, vz, vyaw, (zx, zz, zyaw)*]"""
-        state = []
-        order = ['The Hunted', 'Villager', 'Zombie']
-        while True:
+        """
+            Returns the states of all the entities [villager_alive, px, pz, pyaw,(zx, zz, zyaw)*]
+            all positions relative 
+        """
+        enemystate = []
+        mystate = []
+        running = True
+        seen_villager, x, y, yaw = False,0.,0.,0.
+        while running:
             world_state = agent_host.getWorldState()
+            running = world_state.is_mission_running
+            if len(mystate) > 0 and len(enemystate) > 0:
+                x = [str(seen_villager)]
+                x.extend(mystate)
+                x.extend(enemystate)
+                print x
+                return ','.join(x)
             if world_state.number_of_observations_since_last_state > 0:
                 msg = world_state.observations[-1].text
                 ob = json.loads(msg)
                 for ent in ob['entities']:
                     name = ent['name']
-                    for next in order:
-                        if name == next:
-                            state.extend([str(x) for x in [ent['x'], ent['z'], ent['yaw']]])
-                return ','.join(state)
+                    if not seen_villager and name == PROTECTEE:
+                        seen_villager = True
+                        x,y,z = ent['x'], ent['z'], ent['yaw']
+                        break
+                    if seen_villager:
+                        if name == ENEMY:
+                            enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]])
+                        elif name == 'The Hunted':
+                            mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]]
+        return ','.join([str(False)])
+
 
     def is_solution(reward):
         """If the reward equals to the maximum reward possible returns True, False otherwise. """
@@ -208,6 +227,8 @@ class Protector(object):
     def is_villager_alive(self, agent_host):
         while True:
             world_state = agent_host.getWorldState()
+            if not world_state.is_mission_running:
+                return False
             if world_state.number_of_observations_since_last_state > 0:
                 msg = world_state.observations[-1].text
                 ob = json.loads(msg)
@@ -295,7 +316,7 @@ def GetMissionXML(summary):
             <AgentStart>
                 <Placement x="12.5" y="207.0" z="10.5" yaw="-90"/>
                 <Inventory>
-                        <InventoryItem slot="8" type="diamond_pickaxe"/>
+                        <InventoryItem slot="8" type="diamond_sword"/>
                 </Inventory>                
             </AgentStart>
             <AgentHandlers>
@@ -361,6 +382,8 @@ if __name__ == '__main__':
             world_state = agent_host.getWorldState()
         print "started"
         agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
+        #agent_host.sendCommand("chat /effect @p resistance 99999 255")
+        agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
         time.sleep(.1)
