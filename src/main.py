@@ -34,46 +34,46 @@ class Protector(object):
         self.q_table = {}
         self.n, self.gamma, self.alpha = n, gamma, alpha
 
-    def position_states(self, agent_host):
+    def get_entities(self, agent_host):
+        running = True
+        while running:
+            world_state = agent_host.getWorldState()
+            running = world_state.is_mission_running
+            if world_state.number_of_observations_since_last_state > 0:
+                msg = world_state.observations[-1].text
+                ob = json.loads(msg)
+                return ob['entities']
+        return []
+
+    def position_states(self, entities):
         """
             Returns the states of all the entities [villager_alive, px, pz, pyaw,(zx, zz, zyaw)*]
             all positions relative 
         """
         enemystate = []
         mystate = []
-        running = True
-        seen_villager, x, y, yaw = False,0.,0.,0.
-        while running:
-            world_state = agent_host.getWorldState()
-            running = world_state.is_mission_running
-            if len(mystate) > 0 and len(enemystate) > 0:
-                x = [str(seen_villager)]
-                x.extend(mystate)
-                x.extend(enemystate)
-                print x
-                return ','.join(x)
-            if world_state.number_of_observations_since_last_state > 0:
-                msg = world_state.observations[-1].text
-                ob = json.loads(msg)
-                for ent in ob['entities']:
-                    name = ent['name']
-                    if not seen_villager and name == PROTECTEE:
-                        seen_villager = True
-                        x,y,z = ent['x'], ent['z'], ent['yaw']
-                        break
-                    if seen_villager:
-                        if name == ENEMY:
-                            enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]])
-                        elif name == 'The Hunted':
-                            mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]]
-        return ','.join([str(False)])
+        seen_villager, x, z, yaw = False,0.,0.,0.
+        for ent in entities:
+            name = ent['name']
+            if name == PROTECTEE:
+                x, z, yaw = ent['x'], ent['z'], ent['yaw']
+                seen_villager = True
+            elif name == ENEMY:
+                enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]])
+            elif name == 'The Hunted':
+                mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]]
+        x = [str(seen_villager)]
+        x.extend(mystate)
+        x.extend(enemystate)
+        print x
+        return ','.join(x)
 
 
     def is_solution(reward):
         """If the reward equals to the maximum reward possible returns True, False otherwise. """
         return reward == 10000
 
-    def get_possible_actions(self, agent_host, is_first_action=False):
+    def get_possible_actions(self):
         """Returns all possible actions that can be done at the current state. """
         return ['up', 'down', 'left', 'right', 'swing']
 
@@ -108,7 +108,7 @@ class Protector(object):
             index = max[random.randint(0, len(max) - 1)]
             return list[index][0]
 
-    def act(self, agent_host, action):
+    def act(self, agent_host, action, entities):
         print action + ",",
         # if action == 'present_gift':
         #     return self.present_gift(agent_host)
@@ -121,7 +121,7 @@ class Protector(object):
         else:
             self.attack(agent_host)
 
-        return self.score(agent_host)
+        return self.score(entities)
 
     def move(self, action, agent_host):
         if action == 'up':
@@ -136,15 +136,15 @@ class Protector(object):
     def attack(self, agent_host):
         agent_host.sendCommand('attack 1')
 
-    def score(self, agent_host):
+    def score(self, entities):
         '''
         A dummy reward function. High if no zombies, but villager is alive, very negative if the opposite
-        :param agent_host: 
+        :param entities: 
         :return: number score (see above)
         '''
-        if not self.is_villager_alive(agent_host):
+        if not self.has(entities, PROTECTEE):
             return -10000
-        if not self.has_zombies(agent_host):
+        if not self.has(entities, ENEMY):
             return 10000
         return -1
 
@@ -173,18 +173,21 @@ class Protector(object):
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
         while not done_update:
-            s0 = self.get_curr_state(agent_host)
-            possible_actions = self.get_possible_actions(agent_host, True)
+            entities = self.get_entities(agent_host)
+            s0 = self.get_curr_state(entities)
+            possible_actions = self.get_possible_actions()
             a0 = self.choose_action(s0, possible_actions, self.epsilon)
             S.append(s0)
             A.append(a0)
             R.append(0)
+            entities = self.get_entities(agent_host)
 
             T = sys.maxint
             for t in xrange(sys.maxint):
                 time.sleep(0.1)
                 if t < T:
-                    current_r = self.act(agent_host, A[-1])
+                    current_r = self.act(agent_host, A[-1], entities)
+                    entities = self.get_entities(agent_host)
                     R.append(current_r)
 
                     if current_r == -10000 or current_r == 10000:
@@ -196,9 +199,9 @@ class Protector(object):
                         print self.q_table
                         agent_host.sendCommand("quit")
                     else:
-                        s = self.get_curr_state(agent_host)
+                        s = self.get_curr_state(entities)
                         S.append(s)
-                        possible_actions = self.get_possible_actions(agent_host)
+                        possible_actions = self.get_possible_actions()
                         next_a = self.choose_action(s, possible_actions, self.epsilon)
                         A.append(next_a)
 
@@ -212,6 +215,9 @@ class Protector(object):
                         self.update_q_table(tau, S, A, R, T)
                     done_update = True
                     break
+
+    def has(self, entities, name):
+        return sum([1 if entity['name'] == name else 0 for entity in entities]) > 0
 
     def has_zombies(self, agent_host):
         while True:
@@ -383,10 +389,10 @@ if __name__ == '__main__':
         print "started"
         agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
         #agent_host.sendCommand("chat /effect @p resistance 99999 255")
-        agent_host.sendCommand("chat /effect @p invisibility 99999 255")
+        #agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
-        time.sleep(.1)
+        time.sleep(1)
         while world_state.is_mission_running:
             ai.run(agent_host)
             time.sleep(0.1)
