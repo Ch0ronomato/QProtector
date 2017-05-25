@@ -8,6 +8,14 @@ import math
 import Tkinter as tk
 import numpy as np
 from collections import deque
+import matplotlib
+import numpy as np
+import sklearn
+import sklearn.pipeline
+import sklearn.preprocessing
+from sklearn.linear_model import SGDRegressor
+from sklearn.kernel_approximation import RBFSampler
+
 
 MOB_TYPE = "Endermite"  # Change for fun, but note that spawning conditions have to be correct - eg spiders will require darker conditions.
 ARENA_WIDTH = 60
@@ -15,14 +23,91 @@ ARENA_BREADTH = 60
 
 PROTECTEE = 'Villager'
 ENEMY = 'Zombie'
+
+ACTIONS = ['up', 'down', 'left', 'right', 'swing']
+
 def getCorner(index,top,left,expand=0,y=206):
     ''' Return part of the XML string that defines the requested corner'''
     x = str(-(expand+ARENA_WIDTH/2)) if left else str(expand+ARENA_WIDTH/2)
     z = str(-(expand+ARENA_BREADTH/2)) if top else str(expand+ARENA_BREADTH/2)
     return 'x'+index+'="'+x+'" y'+index+'="' +str(y)+'" z'+index+'="'+z+'"'
 
+
+
+scaler = sklearn.preprocessing.StandardScaler()
+intitial_state_space = np.zeros(7)
+scaler.fit(intitial_state_space)
+
+featurizer = sklearn.pipeline.FeatureUnion([
+        ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
+        ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
+        ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
+        ("rbf4", RBFSampler(gamma=0.5, n_components=100))
+        ])
+featurizer.fit(scaler.transform(intitial_state_space))
+
+# estimator for SDGRegressor
+class Estimator():
+    """
+    Value Function approximator.
+    """
+
+    def __init__(self):
+        # We create a separate model for each action in the environment's
+        # action space. Alternatively we could somehow encode the action
+        # into the features, but this way it's easier to code up.
+        self.models = []
+        for _ in range(5):
+            model = SGDRegressor(learning_rate="constant")
+            # We need to call partial_fit once to initialize the model
+            # or we get a NotFittedError when trying to make a prediction
+            # This is quite hacky.
+            start_space = np.zeros(7)
+            model.partial_fit([self.featurize_state(start_space)], [0])
+            self.models.append(model)
+
+    def featurize_state(self, state):
+        """
+        Returns the featurized representation for a state.
+        """
+        print "featurize_state: ", state
+        scaled = scaler.transform([state])
+        featurized = featurizer.transform(scaled)
+        return featurized[0]
+
+    def predict(self, s, a=None):
+        """
+        Makes value function predictions.
+
+        Args:
+            s: state to make a prediction for
+            a: (Optional) action to make a prediction for
+
+        Returns
+            If an action a is given this returns a single number as the prediction.
+            If no action is given this returns a vector or predictions for all actions
+            in the environment where pred[i] is the prediction for action i.
+
+        """
+        features = self.featurize_state(s)
+        if not a:
+            return np.array([m.predict([features])[0] for m in self.models])
+        else:
+            return self.models[a].predict([features])[0]
+
+    def update(self, s, a, y):
+        """
+        Updates the estimator parameters for a given state and action towards
+        the target y.
+        """
+        features = self.featurize_state(s)
+        self.models[a].partial_fit([features], [y])
+
+
+
+
 class Protector(object):
-    def __init__(self, alpha=0.3, gamma=1, n=1):
+    def __init__(self, alpha=0.3, gamma=1, n=1, estimator=Estimator()):
         """Constructing an RL agent.
 
         Args
@@ -32,7 +117,7 @@ class Protector(object):
         """
         self.epsilon = 0.2  # chance of taking a random action instead of the best
         self.q_table = {}
-        self.n, self.gamma, self.alpha = n, gamma, alpha
+        self.n, self.gamma, self.alpha, self.estimator = n, gamma, alpha, estimator
 
     def get_entities(self, agent_host):
         running = True
@@ -48,7 +133,7 @@ class Protector(object):
     def position_states(self, entities):
         """
             Returns the states of all the entities [villager_alive, px, pz, pyaw,(zx, zz, zyaw)*]
-            all positions relative 
+            all positions relative
         """
         enemystate = []
         mystate = []
@@ -66,8 +151,12 @@ class Protector(object):
         x.extend(mystate)
         x.extend(enemystate)
         print x
-        return ','.join(x)
-
+        # return (','.join(x), x)
+        if x[0] == 'True':
+            x[0] = '1.0'
+        else:
+            x[0] = '0.0'
+        return x
 
     def is_solution(reward):
         """If the reward equals to the maximum reward possible returns True, False otherwise. """
@@ -109,6 +198,7 @@ class Protector(object):
             return list[index][0]
 
     def act(self, agent_host, action, entities):
+        print action
         print action + ",",
         # if action == 'present_gift':
         #     return self.present_gift(agent_host)
@@ -139,7 +229,7 @@ class Protector(object):
     def score(self, entities):
         '''
         A dummy reward function. High if no zombies, but villager is alive, very negative if the opposite
-        :param entities: 
+        :param entities:
         :return: number score (see above)
         '''
         if not self.has(entities, PROTECTEE):
@@ -158,13 +248,13 @@ class Protector(object):
             R:   <dequqe>   rewards queue
             T:   <int>      terminating state index
         """
-        curr_s, curr_a, curr_r = S.popleft(), A.popleft(), R.popleft()
-        G = sum([self.gamma ** i * R[i] for i in range(len(S))])
-        if tau + self.n < T:
-            G += self.gamma ** self.n * self.q_table[S[-1]][A[-1]]
+        # curr_s, curr_a, curr_r = S.popleft(), A.popleft(), R.popleft()
+        # G = sum([self.gamma ** i * R[i] for i in range(len(S))])
+        # if tau + self.n < T:
+        #     G += self.gamma ** self.n * self.q_table[S[-1]][A[-1]]
 
-        old_q = self.q_table[curr_s][curr_a]
-        self.q_table[curr_s][curr_a] = old_q + self.alpha * (G - old_q)
+        # old_q = self.q_table[curr_s][curr_a]
+        # self.q_table[curr_s][curr_a] = old_q + self.alpha * (G - old_q)
 
     def run(self, agent_host):
         S, A, R = deque(), deque(), deque()
@@ -172,11 +262,14 @@ class Protector(object):
         done_update = False
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
+
+
         while not done_update:
             entities = self.get_entities(agent_host)
             s0 = self.get_curr_state(entities)
             possible_actions = self.get_possible_actions()
-            a0 = self.choose_action(s0, possible_actions, self.epsilon)
+            # a0 = self.choose_action(s0, possible_actions, self.epsilon)
+            a0 = 'swing'
             S.append(s0)
             A.append(a0)
             R.append(0)
@@ -184,6 +277,8 @@ class Protector(object):
 
             T = sys.maxint
             for t in xrange(sys.maxint):
+                policy = make_epsilon_greedy_policy(
+                    self.estimator, self.epsilon * self.gamma**t, len(possible_actions))
                 time.sleep(0.1)
                 if t < T:
                     current_r = self.act(agent_host, A[-1], entities)
@@ -202,8 +297,40 @@ class Protector(object):
                         s = self.get_curr_state(entities)
                         S.append(s)
                         possible_actions = self.get_possible_actions()
-                        next_a = self.choose_action(s, possible_actions, self.epsilon)
-                        A.append(next_a)
+
+                        #next_a = self.choose_action(s, possible_actions, self.epsilon)
+                        # add sgdregressor code here
+                        next_action = None
+                        #if next_action is None:
+                        action_probs = policy(s)
+                        print action_probs
+                        action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+
+                        # Take a step
+                        # next_state, reward, done, _ = env.step(action)
+
+                        reward = self.score(self.get_entities(agent_host))
+
+                        # Update statistics
+                        # stats.episode_rewards[i_episode] += reward
+                        # stats.episode_lengths[i_episode] = t
+
+                        # TD Update
+                        q_values_next = estimator.predict(s)
+
+                        # Use this code for Q-Learning
+                        # Q-Value TD Target
+                        td_target = reward + self.gamma * np.max(q_values_next)
+
+                        # Use this code for SARSA TD Target for on policy-training:
+                        # next_action_probs = policy(next_state)
+                        # next_action = np.random.choice(np.arange(len(next_action_probs)), p=next_action_probs)
+                        # td_target = reward + discount_factor * q_values_next[next_action]
+
+                        # Update the function approximator using our target
+                        estimator.update(s, action, td_target)
+
+                        A.append(ACTIONS[action])
 
                 tau = t - self.n + 1
                 if tau >= 0:
@@ -285,6 +412,34 @@ class Protector(object):
 #         converged = True
 
 
+def make_epsilon_greedy_policy(estimator, epsilon, nA):
+    """
+    Creates an epsilon-greedy policy based on a given Q-function approximator and epsilon.
+
+    Args:
+        estimator: An estimator that returns q values for a given state
+        epsilon: The probability to select a random action . float between 0 and 1.
+        nA: Number of actions in the environment.
+
+    Returns:
+        A function that takes the observation as an argument and returns
+        the probabilities for each action in the form of a numpy array of length nA.
+
+    """
+    def policy_fn(observation):
+        epsilon = .2
+        A = np.ones(nA, dtype=float) * epsilon / nA
+        q_values = estimator.predict(observation)
+        print q_values
+        best_action = np.argmax(q_values)
+        A[best_action] += (1.0 - epsilon)
+        print epsilon
+        return A
+    return policy_fn
+
+
+
+
 def GetMissionXML(summary):
     ''' Build an XML mission string.'''
     return '''<?xml version="1.0" encoding="UTF-8" ?>
@@ -323,7 +478,7 @@ def GetMissionXML(summary):
                 <Placement x="12.5" y="207.0" z="10.5" yaw="-90"/>
                 <Inventory>
                         <InventoryItem slot="8" type="diamond_sword"/>
-                </Inventory>                
+                </Inventory>
             </AgentStart>
             <AgentHandlers>
                 <ChatCommands/>
@@ -362,7 +517,14 @@ if __name__ == '__main__':
 
     num_reps = 30000
     n,gamma,alpha = 10, 5,.7
-    ai = Protector(alpha, gamma, n)
+    estimator = Estimator()
+    # stats = plotting.EpisodeStats(
+    # episode_lengths=np.zeros(num_episodes),
+    # episode_rewards=np.zeros(num_episodes))
+
+
+    ai = Protector(alpha, gamma, n, estimator)
+    # episodes
     for iRepeat in range(num_reps):
         my_mission = MalmoPython.MissionSpec(GetMissionXML("Defend #" + str(iRepeat)), True)
         my_mission_record = MalmoPython.MissionRecordSpec()  # Records nothing by default
