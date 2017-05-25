@@ -35,7 +35,7 @@ def getCorner(index,top,left,expand=0,y=206):
 
 
 scaler = sklearn.preprocessing.StandardScaler()
-intitial_state_space = np.zeros(7)
+intitial_state_space = np.zeros(6)
 scaler.fit(intitial_state_space)
 
 featurizer = sklearn.pipeline.FeatureUnion([
@@ -62,7 +62,7 @@ class Estimator():
             # We need to call partial_fit once to initialize the model
             # or we get a NotFittedError when trying to make a prediction
             # This is quite hacky.
-            start_space = np.zeros(7)
+            start_space = np.zeros(6)
             model.partial_fit([self.featurize_state(start_space)], [0])
             self.models.append(model)
 
@@ -142,20 +142,24 @@ class Protector(object):
             name = ent['name']
             if name == PROTECTEE:
                 x, z, yaw = ent['x'], ent['z'], ent['yaw']
-                seen_villager = True
+                #seen_villager = True
             elif name == ENEMY:
                 enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]])
             elif name == 'The Hunted':
                 mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]]
-        x = [str(seen_villager)]
+        #x = [str(seen_villager)]
+        x = []
+        print "mystate: ", mystate
+        print "enemystate: ", enemystate
+        print "x before extend: ", x
         x.extend(mystate)
         x.extend(enemystate)
-        print x
+        print "x being returned: ", x
         # return (','.join(x), x)
-        if x[0] == 'True':
-            x[0] = '1.0'
-        else:
-            x[0] = '0.0'
+        # if x[0] == 'True':
+        #     x[0] = '1.0'
+        # else:
+        #     x[0] = '0.0'
         return x
 
     def is_solution(reward):
@@ -284,6 +288,9 @@ class Protector(object):
                     current_r = self.act(agent_host, A[-1], entities)
                     entities = self.get_entities(agent_host)
                     R.append(current_r)
+                    s = self.get_curr_state(entities)
+
+                    print "current_r: ", current_r
 
                     if current_r == -10000 or current_r == 10000:
                         # Terminating state
@@ -298,34 +305,20 @@ class Protector(object):
                         S.append(s)
                         possible_actions = self.get_possible_actions()
 
-                        #next_a = self.choose_action(s, possible_actions, self.epsilon)
                         # add sgdregressor code here
-                        next_action = None
-                        #if next_action is None:
                         action_probs = policy(s)
                         print action_probs
                         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
 
-                        # Take a step
-                        # next_state, reward, done, _ = env.step(action)
-
-                        reward = self.score(self.get_entities(agent_host))
-
-                        # Update statistics
-                        # stats.episode_rewards[i_episode] += reward
-                        # stats.episode_lengths[i_episode] = t
-
+                        reward = current_r + self.score(self.get_entities(agent_host))
+                        R.append(reward)
+                        print reward
                         # TD Update
                         q_values_next = estimator.predict(s)
 
                         # Use this code for Q-Learning
                         # Q-Value TD Target
                         td_target = reward + self.gamma * np.max(q_values_next)
-
-                        # Use this code for SARSA TD Target for on policy-training:
-                        # next_action_probs = policy(next_state)
-                        # next_action = np.random.choice(np.arange(len(next_action_probs)), p=next_action_probs)
-                        # td_target = reward + discount_factor * q_values_next[next_action]
 
                         # Update the function approximator using our target
                         estimator.update(s, action, td_target)
@@ -339,7 +332,7 @@ class Protector(object):
                 if tau == T - 1:
                     while len(S) > 1:
                         tau = tau + 1
-                        self.update_q_table(tau, S, A, R, T)
+                        # self.update_q_table(tau, S, A, R, T)
                     done_update = True
                     break
 
