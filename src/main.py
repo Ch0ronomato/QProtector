@@ -152,6 +152,9 @@ class Protector(object):
         print "mystate: ", mystate
         print "enemystate: ", enemystate
         print "x before extend: ", x
+
+        if len(enemystate) > 3:
+            enemystate = [0.0, 0.0, 0.0]
         x.extend(mystate)
         x.extend(enemystate)
         print "x being returned: ", x
@@ -292,20 +295,24 @@ class Protector(object):
 
                     print "current_r: ", current_r
 
-                    if current_r == -10000 or current_r == 10000:
+                    if current_r <= -10000 or current_r >= 10000:
                         # Terminating state
+                        print " <= -1000 got triggered"
                         T = t + 1
                         S.append('Term State')
                         present_reward = current_r
                         print "Reward:", present_reward
                         print self.q_table
                         agent_host.sendCommand("quit")
+
                     else:
                         s = self.get_curr_state(entities)
                         S.append(s)
                         possible_actions = self.get_possible_actions()
 
                         # add sgdregressor code here
+                        if len(s) == 0:
+                            break
                         action_probs = policy(s)
                         print action_probs
                         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
@@ -326,12 +333,12 @@ class Protector(object):
                         A.append(ACTIONS[action])
 
                 tau = t - self.n + 1
-                if tau >= 0:
-                    self.update_q_table(tau, S, A, R, T)
+                # if tau >= 0:
+                #     self.update_q_table(tau, S, A, R, T)
 
                 if tau == T - 1:
-                    while len(S) > 1:
-                        tau = tau + 1
+                    # while len(S) > 1:
+                    #     tau = tau + 1
                         # self.update_q_table(tau, S, A, R, T)
                     done_update = True
                     break
@@ -544,7 +551,7 @@ if __name__ == '__main__':
         print "started"
         agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
         #agent_host.sendCommand("chat /effect @p resistance 99999 255")
-        #agent_host.sendCommand("chat /effect @p invisibility 99999 255")
+        # agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
         time.sleep(1)
