@@ -35,7 +35,7 @@ def getCorner(index,top,left,expand=0,y=206):
 
 
 scaler = sklearn.preprocessing.StandardScaler()
-intitial_state_space = np.zeros(7)
+intitial_state_space = np.zeros(6)
 scaler.fit(intitial_state_space)
 
 featurizer = sklearn.pipeline.FeatureUnion([
@@ -62,7 +62,7 @@ class Estimator():
             # We need to call partial_fit once to initialize the model
             # or we get a NotFittedError when trying to make a prediction
             # This is quite hacky.
-            start_space = np.zeros(7)
+            start_space = np.zeros(6)
             model.partial_fit([self.featurize_state(start_space)], [0])
             self.models.append(model)
 
@@ -138,24 +138,33 @@ class Protector(object):
         enemystate = []
         mystate = []
         seen_villager, x, z, yaw = False,0.,0.,0.
+        health = 0 #Villager's health
         for ent in entities:
             name = ent['name']
             if name == PROTECTEE:
-                x, z, yaw = ent['x'], ent['z'], ent['yaw']
-                seen_villager = True
+                x, z, health = ent['x'], ent['z'], ent['life']
+                #seen_villager = True
             elif name == ENEMY:
-                enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]])
+                enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['life']]])
             elif name == 'The Hunted':
-                mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['yaw'] - yaw]]
-        x = [str(seen_villager)]
+                mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, health]]
+        #x = [str(seen_villager)]
+        x = []
+        print "VILLAGER_HP: ", health
+        print "mystate: ", mystate
+        print "enemystate: ", enemystate
+        print "x before extend: ", x
+
+        if len(enemystate) > 3:
+            enemystate = [0.0, 0.0, 0.0]
         x.extend(mystate)
         x.extend(enemystate)
-        print x
+        print "x being returned: ", x
         # return (','.join(x), x)
-        if x[0] == 'True':
-            x[0] = '1.0'
-        else:
-            x[0] = '0.0'
+        # if x[0] == 'True':
+        #     x[0] = '1.0'
+        # else:
+        #     x[0] = '0.0'
         return x
 
     def is_solution(reward):
@@ -232,11 +241,28 @@ class Protector(object):
         :param entities:
         :return: number score (see above)
         '''
+        score = -1
+        state = self.position_states(entities)
+        x, y = 0., 0.
+        for ent in entities:
+            if ent['name'] == PROTECTEE:
+                #Negative reward based on damage villager has taken
+                score -= (20 - ent['life'])
+            elif ent['name'] == ENEMY:
+                #Positive reward based on damage to the zombie
+                score -= (ent['life'] - 20)
+                x -= ent['x']
+                y -= ent ['y']
+            elif ent['name'] == 'The Hunted':
+                x += ent['x']
+                y += ent['y']
+        distance = math.sqrt((x**2) + (y**2))
+        score -= (2 * distance) - 0.3      
         if not self.has(entities, PROTECTEE):
             return -10000
         if not self.has(entities, ENEMY):
             return 10000
-        return -1
+        return score
 
     def update_q_table(self, tau, S, A, R, T):
         """Performs relevant updates for state tau.
@@ -284,37 +310,35 @@ class Protector(object):
                     current_r = self.act(agent_host, A[-1], entities)
                     entities = self.get_entities(agent_host)
                     R.append(current_r)
+                    s = self.get_curr_state(entities)
 
-                    if current_r == -10000 or current_r == 10000:
+                    print "current_r: ", current_r
+
+                    if current_r <= -10000 or current_r >= 10000:
                         # Terminating state
+                        print " <= -10000 got triggered"
                         T = t + 1
                         S.append('Term State')
                         present_reward = current_r
                         print "Reward:", present_reward
                         print self.q_table
                         agent_host.sendCommand("quit")
+
                     else:
                         s = self.get_curr_state(entities)
                         S.append(s)
                         possible_actions = self.get_possible_actions()
 
-                        #next_a = self.choose_action(s, possible_actions, self.epsilon)
                         # add sgdregressor code here
-                        next_action = None
-                        #if next_action is None:
+                        if len(s) == 0:
+                            break
                         action_probs = policy(s)
                         print action_probs
                         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
 
-                        # Take a step
-                        # next_state, reward, done, _ = env.step(action)
-
-                        reward = self.score(self.get_entities(agent_host))
-
-                        # Update statistics
-                        # stats.episode_rewards[i_episode] += reward
-                        # stats.episode_lengths[i_episode] = t
-
+                        reward = current_r + self.score(self.get_entities(agent_host))
+                        R.append(reward)
+                        print "REWARD", reward
                         # TD Update
                         q_values_next = estimator.predict(s)
 
@@ -322,24 +346,19 @@ class Protector(object):
                         # Q-Value TD Target
                         td_target = reward + self.gamma * np.max(q_values_next)
 
-                        # Use this code for SARSA TD Target for on policy-training:
-                        # next_action_probs = policy(next_state)
-                        # next_action = np.random.choice(np.arange(len(next_action_probs)), p=next_action_probs)
-                        # td_target = reward + discount_factor * q_values_next[next_action]
-
                         # Update the function approximator using our target
                         estimator.update(s, action, td_target)
 
                         A.append(ACTIONS[action])
 
                 tau = t - self.n + 1
-                if tau >= 0:
-                    self.update_q_table(tau, S, A, R, T)
+                # if tau >= 0:
+                #     self.update_q_table(tau, S, A, R, T)
 
                 if tau == T - 1:
-                    while len(S) > 1:
-                        tau = tau + 1
-                        self.update_q_table(tau, S, A, R, T)
+                    # while len(S) > 1:
+                    #     tau = tau + 1
+                        # self.update_q_table(tau, S, A, R, T)
                     done_update = True
                     break
 
@@ -551,7 +570,7 @@ if __name__ == '__main__':
         print "started"
         agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
         #agent_host.sendCommand("chat /effect @p resistance 99999 255")
-        #agent_host.sendCommand("chat /effect @p invisibility 99999 255")
+        # agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
         time.sleep(1)
