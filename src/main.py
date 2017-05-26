@@ -70,7 +70,6 @@ class Estimator():
         """
         Returns the featurized representation for a state.
         """
-        print "featurize_state: ", state
         scaled = scaler.transform([state])
         featurized = featurizer.transform(scaled)
         return featurized[0]
@@ -118,6 +117,7 @@ class Protector(object):
         self.epsilon = 0.2  # chance of taking a random action instead of the best
         self.q_table = {}
         self.n, self.gamma, self.alpha, self.estimator = n, gamma, alpha, estimator
+        self.reward_file = file("reward.txt", 'a+')
 
     def get_entities(self, agent_host):
         running = True
@@ -148,23 +148,16 @@ class Protector(object):
                 enemystate.extend([str(elem) for elem in [ent['x'] - x, ent['z'] - z, ent['life']]])
             elif name == 'The Hunted':
                 mystate = [str(elem) for elem in [ent['x'] - x, ent['z'] - z, health]]
-        #x = [str(seen_villager)]
         x = []
-        print "VILLAGER_HP: ", health
-        print "mystate: ", mystate
-        print "enemystate: ", enemystate
-        print "x before extend: ", x
+        # print "VILLAGER_HP: ", health
+        # print "mystate: ", mystate
+        # print "enemystate: ", enemystate
+        # print "x before extend: ", x
 
         if len(enemystate) > 3:
             enemystate = [0.0, 0.0, 0.0]
         x.extend(mystate)
         x.extend(enemystate)
-        print "x being returned: ", x
-        # return (','.join(x), x)
-        # if x[0] == 'True':
-        #     x[0] = '1.0'
-        # else:
-        #     x[0] = '0.0'
         return x
 
     def is_solution(reward):
@@ -219,7 +212,6 @@ class Protector(object):
             self.move(action, agent_host)
         else:
             self.attack(agent_host)
-
         return self.score(entities)
 
     def move(self, action, agent_host):
@@ -270,7 +262,7 @@ class Protector(object):
         if not self.has(entities, PROTECTEE):
             score -= 10000
         if not self.has(entities, ENEMY):
-            score -= 10000
+            score += 10000
         return score
 
     def update_q_table(self, tau, S, A, R, T):
@@ -283,13 +275,13 @@ class Protector(object):
             R:   <dequqe>   rewards queue
             T:   <int>      terminating state index
         """
-        # curr_s, curr_a, curr_r = S.popleft(), A.popleft(), R.popleft()
-        # G = sum([self.gamma ** i * R[i] for i in range(len(S))])
-        # if tau + self.n < T:
-        #     G += self.gamma ** self.n * self.q_table[S[-1]][A[-1]]
+        curr_s, curr_a, curr_r = S.popleft(), A.popleft(), R.popleft()
+        G = sum([self.gamma ** i * R[i] for i in range(len(S))])
+        if tau + self.n < T:
+            G += self.gamma ** self.n * self.q_table[S[-1]][A[-1]]
 
-        # old_q = self.q_table[curr_s][curr_a]
-        # self.q_table[curr_s][curr_a] = old_q + self.alpha * (G - old_q)
+        old_q = self.q_table[curr_s][curr_a]
+        self.q_table[curr_s][curr_a] = old_q + self.alpha * (G - old_q)
 
     def run(self, agent_host):
         S, A, R = deque(), deque(), deque()
@@ -312,6 +304,7 @@ class Protector(object):
 
             T = sys.maxint
             for t in xrange(sys.maxint):
+                world_state = agent_host.getWorldState()
                 policy = make_epsilon_greedy_policy(
                     self.estimator, self.epsilon * self.gamma**t, len(possible_actions))
                 time.sleep(0.1)
@@ -319,46 +312,43 @@ class Protector(object):
                     current_r = self.act(agent_host, A[-1], entities)
                     entities = self.get_entities(agent_host)
                     R.append(current_r)
+                    last_state = S[-1]
                     s = self.get_curr_state(entities)
 
-                    print "current_r: ", current_r
-
-                    if current_r <= -10000 or current_r >= 10000:
+                    print "Took action ", A[-1], " at state ", S[-1], " got reward ", current_r
+                    if current_r <= -10000 or current_r >= 10000 or not world_state.is_mission_running:
                         # Terminating state
                         print " <= -10000 got triggered"
                         T = t + 1
                         S.append('Term State')
                         present_reward = current_r
+                        R.append(current_r)
                         print "Reward:", present_reward
                         print self.q_table
                         agent_host.sendCommand("quit")
 
                     else:
-                        s = self.get_curr_state(entities)
                         S.append(s)
-                        possible_actions = self.get_possible_actions()
+                        action_taken = A[-1]
+                        s_prime = self.get_curr_state(self.get_entities(agent_host))
 
-                        # add sgdregressor code here
-                        if len(s) == 0:
+                        # picking next action
+                        possible_actions = self.get_possible_actions()
+                        if len(s_prime) == 0:
                             break
-                        action_probs = policy(s)
-                        print action_probs
+                        action_probs = policy(s_prime)
                         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
 
-                        reward = current_r + self.score(self.get_entities(agent_host))
-                        R.append(reward)
-                        print "REWARD", reward
-                        # TD Update
-                        q_values_next = estimator.predict(s)
+                        A.append(ACTIONS[action])
 
-                        # Use this code for Q-Learning
-                        # Q-Value TD Target
-                        td_target = reward + self.gamma * np.max(q_values_next)
+                        # TD Update
+                        q_values_current = estimator.predict(s_prime)
+                        td_target = current_r + self.gamma * np.argmax(q_values_current)
 
                         # Update the function approximator using our target
-                        estimator.update(s, action, td_target)
+                        print "Updating estimator for state ", s, " action ", action_taken, " target ", td_target
+                        estimator.update(last_state, possible_actions.index(action_taken), td_target)
 
-                        A.append(ACTIONS[action])
 
                 tau = t - self.n + 1
                 # if tau >= 0:
@@ -370,6 +360,8 @@ class Protector(object):
                         # self.update_q_table(tau, S, A, R, T)
                     done_update = True
                     break
+        # dump the reward function to a file.
+        self.reward_file.write(','.join([str(r) for r in R]) + '\n')
 
     def has(self, entities, name):
         return sum([1 if entity['name'] == name else 0 for entity in entities]) > 0
@@ -455,7 +447,6 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
 
     """
     def policy_fn(observation):
-        epsilon = .2
         A = np.ones(nA, dtype=float) * epsilon / nA
         q_values = estimator.predict(observation)
         print q_values
@@ -544,7 +535,7 @@ if __name__ == '__main__':
         exit(0)
 
     num_reps = 30000
-    n,gamma,alpha = 10, 5,.7
+    n,gamma,alpha = 10, .5,.7
     estimator = Estimator()
     # stats = plotting.EpisodeStats(
     # episode_lengths=np.zeros(num_episodes),
@@ -578,6 +569,7 @@ if __name__ == '__main__':
             world_state = agent_host.getWorldState()
         print "started"
         agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
+
         #agent_host.sendCommand("chat /effect @p resistance 99999 255")
         agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
