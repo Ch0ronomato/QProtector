@@ -243,25 +243,34 @@ class Protector(object):
         '''
         score = -1
         state = self.position_states(entities)
-        x, y = 0., 0.
+        zx, zz = 0., 0.
+        vx, vz = 0., 0.
         for ent in entities:
             if ent['name'] == PROTECTEE:
                 #Negative reward based on damage villager has taken
                 score -= (20 - ent['life'])
+                vx -= ent['x']
+                vz -= ent['z']
             elif ent['name'] == ENEMY:
                 #Positive reward based on damage to the zombie
-                score -= (ent['life'] - 20)
-                x -= ent['x']
-                y -= ent ['y']
+                score -= (ent['life'] - 20)*10
+                zx -= ent['x']
+                zz -= ent['z']
             elif ent['name'] == 'The Hunted':
-                x += ent['x']
-                y += ent['y']
-        distance = math.sqrt((x**2) + (y**2))
-        score -= (2 * distance) - 0.3      
+                zx += ent['x']
+                zz += ent['z']
+                vx += ent['x']
+                vz += ent['z']
+        zdistance = math.sqrt((zx**2) + (zz**2))
+        vdistance = math.sqrt((vx**2) + (vz**2))
+        print "ZOMB DISTANCE:", zdistance
+        print "VILL DISTANCE:", vdistance
+        score -= (2 * zdistance) - 0.3 
+        score -= vdistance     
         if not self.has(entities, PROTECTEE):
-            return -10000
+            score -= 10000
         if not self.has(entities, ENEMY):
-            return 10000
+            score -= 10000
         return score
 
     def update_q_table(self, tau, S, A, R, T):
@@ -570,7 +579,7 @@ if __name__ == '__main__':
         print "started"
         agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
         #agent_host.sendCommand("chat /effect @p resistance 99999 255")
-        # agent_host.sendCommand("chat /effect @p invisibility 99999 255")
+        agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
         time.sleep(1)
