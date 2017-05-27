@@ -45,4 +45,5 @@ our reward function.
 # Evaluation
 Our project is still a work in progress. While not ideal, we have been able to get our AI to find its way towards villager and zombie. Initially, the AI moves around in what seems like random directions, often away from the villager as it is being attack by the zombie. However, it has been able to learn to improve its score by decreasing the distance between itself and the other entities. Although it does not consistently attack the zombie, our AI is at least able to move to the location of the target. After over a hundred episodes, the AI has shown much improvement over its initial movement patterns, consistently heading towards the target over several consecutive episodes. 
 
+![Distance Plot](https://github.com/IanSchweer/CS175/edit/master/docs/distance.png)
 # Remaining Goals and Challenges
