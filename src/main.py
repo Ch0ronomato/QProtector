@@ -118,6 +118,9 @@ class Protector(object):
         self.q_table = {}
         self.n, self.gamma, self.alpha, self.estimator = n, gamma, alpha, estimator
         self.reward_file = file("reward.txt", 'a+')
+        self.time_file = file("time.txt", 'a+')
+        self.distance_file = file("distance.txt", 'a+')
+        self.distances = []
 
     def get_entities(self, agent_host):
         running = True
@@ -255,6 +258,8 @@ class Protector(object):
                 vz += ent['z']
         zdistance = math.sqrt((zx**2) + (zz**2))
         vdistance = math.sqrt((vx**2) + (vz**2))
+        # save the episode's distance between player and zombie
+        self.distances.append(zdistance)
         print "ZOMB DISTANCE:", zdistance
         print "VILL DISTANCE:", vdistance
         score -= (2 * zdistance) - 0.3 
@@ -289,7 +294,9 @@ class Protector(object):
         done_update = False
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
-
+        
+        # Episode start time
+        start_time = time.time()
 
         while not done_update:
             entities = self.get_entities(agent_host)
@@ -360,8 +367,16 @@ class Protector(object):
                         # self.update_q_table(tau, S, A, R, T)
                     done_update = True
                     break
+        # Episode end time
+        end_time = time.time() - start_time
+        # dump episode time to a file
+        self.time_file.write(str(end_time) + '\n')
         # dump the reward function to a file.
         self.reward_file.write(','.join([str(r) for r in R]) + '\n')
+        # Average the difference of distances between each episode
+        differences = [self.distances[i+1] - self.distances[i] for i in range(len(self.distances) - 1)]
+        avg_difference = sum(differences)/len(differences)
+        self.distance_file.write(str(avg_difference) + '\n')
 
     def has(self, entities, name):
         return sum([1 if entity['name'] == name else 0 for entity in entities]) > 0
@@ -543,6 +558,7 @@ if __name__ == '__main__':
 
 
     ai = Protector(alpha, gamma, n, estimator)
+
     # episodes
     for iRepeat in range(num_reps):
         my_mission = MalmoPython.MissionSpec(GetMissionXML("Defend #" + str(iRepeat)), True)
@@ -575,10 +591,12 @@ if __name__ == '__main__':
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
         time.sleep(1)
+
         while world_state.is_mission_running:
             ai.run(agent_host)
             time.sleep(0.1)
             world_state = agent_host.getWorldState()
+       
 
         # Every few iteration Chester will show us the best policy that he learned.
         # if (iRepeat + 1) % 5 == 0:
