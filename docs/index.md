@@ -3,32 +3,14 @@ layout: default
 title:  Home
 ---
 
-_Add your text here_
+# Welcome to QProtector team page.
+
+**QProtector** is an AI for Minecraft that was built using the [Microsoft Malmo platform](https://github.com/Microsoft/malmo). The intended use of this AI is to be given an entity to protect and protect it.
+This has been built by Ian Schweer, Travis Chiang, and Allen Sallinger from UCI for their project in AI course, CS175, under the teaching of Professor Sameer Singh.
+
+![QProtector Screenshot](https://github.com/IanSchweer/CS175/blob/master/docs/qprotector_screenshot.png)
+
+The current implementation of the AI along with all source code can be found on [github](https://github.com/IanSchweer/QProtector). It is currently implemented using Reinforcement Learning, specifically Q-Learning using SARSA. We are using function approximation through a Stochastic Gradient Descent Regressor at this time instead of
+the Q-Table that we were originally using enable for faster training.
 
 
-What's Markdown (`.md`)?
-
-Markdown is markup that lets you write hypertext (HTML) documents
-in easy-to-read and easy-to-write plain text.
-No angle brackets `<></>` required for
-paragraphs, lists, blockquotes, tables, etc.
-
-
-This is a paragraph (in Markdown). Some more
-text here.
-
-This is another paragraph.
-
-This is a list:
-
-- Orange
-- Apple
-- Blueberry
-
-
-
-Just getting started with Markdown?
-See the [HTML <-> Markdown Quick Reference (Cheat Sheet)][quickref].
-
-
-[quickref]: https://github.com/mundimark/quickrefs/blob/master/HTML.md
