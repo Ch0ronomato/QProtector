@@ -28,7 +28,7 @@ This old state space consisted of 7 different features, is_villager_alive, villa
 to shrink this to only have 4 state space features. We currently have 5 actions to choose from also consisting of up, down, left, right, and swing, swing the sword.
 
 Our reward function has a couple of considerations:
-1. Is the Protectee dead, if not large negative reward, AI failed
+1. Is the Protectee dead, if so large negative reward, AI failed
 2. Is the Zombie dead, if so large positive reward, AI did well
 3. Is the Protector getting closer to the Zombie, if so give slightly negative reward
 4. Is the Protector getting closer to the Protectee, if so give a slightly negative reward
@@ -42,7 +42,7 @@ We are using this as it is faster to train on a larger state space as it does no
 optimal state would be. This has resulted so far in slightly better training. There is still more work to be done though through feature opimization and a possible improvement in
 our reward function.
 
-
 # Evaluation
+Our project is still a work in progress. While not ideal, we have been able to get our AI to find its way towards villager and zombie. Initially, the AI moves around in what seems like random directions, often away from the villager as it is being attack by the zombie. However, it has been able to learn to improve its score by decreasing the distance between itself and the other entities. Although it does not consistently attack the zombie, our AI is at least able to move to the location of the target. After over a hundred episodes, the AI has shown much improvement over its initial movement patterns, consistently heading towards the target over several consecutive episodes. 
 
 # Remaining Goals and Challenges
