@@ -51,6 +51,11 @@ Our project is still a work in progress. While not ideal, we have been able to g
 The image above is a plot of the average change in distance (between player and zombie) between actions over 300 episodes. Towards the earlier episodes, the AI has a much higher positive average, indicating that the AI is moving farther from the zombie as well as the villager it is attacking. However, we can see that there is improvement after each episode. The averages eventually become negative, which shows that the AI is able to decrease the distance between it and the zombie with each action over time.
 
 ![Time Plot](https://github.com/IanSchweer/CS175/blob/master/docs/time.png)
-
+![Reward Plot](https://github.com/IanSchweer/CS175/blob/master/docs/reward.png)
+The two plots show the time the villager stays alive in each episode and the reward at the end of each episode. At the moment, there is not a whole lot of change as the AI progresses through each episode. Since the AI does not yet protect the villager by attacking the zombie, the villager dies after an average of about 5 seconds in real time. Also, ignoring the episodes with reward near 0 (since the villager dies in all episodes), the reward sits around -10000 due to the death of the villager. The rewards plot fluctuates slightly due to the distance affecting the reward.
 
 # Remaining Goals and Challenges
+Our algorithm at the moment has shown signs that we are going in the right direction. The AI is able to move towards where we want it, but its ability to fend off enemies is currently limited. Over these next few weeks, we are aiming to improve the movement and implement proper attacking. With killing the zombie and keeping the villager alive as our ideal goal, a milestone we can set for the next few weeks is to have our AI at least track and attack a zombie. This would allow our AI to achieve at least its minimum objective.
+
+Our current action space is geared towards a grid world, however because our moves in a grid it does not handle facing an enemy and attacking. Implementing yaw to our current AI would add on to the number of actions that our AI would need to make. Sticking with our current algorithm, we may look to change our movement actions from that geared towards a grid world to one closer to real life. Rather than moving up, down, left, and right, we can potentially reduce the number of actions while adding yaw by changing our movement to simply going forward, backwards, turning left, and turning right.
+
