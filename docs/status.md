@@ -2,6 +2,8 @@
 layout: default
 title:  Status
 ---
+Video: https://youtu.be/rdak83dwi1w
+
 # Project Summary
 The purpose of our AI is to act as a body guard for a specific target. The target may be a user, character, or structure. Our scenario consists of having a villager NPC guarded by our AI from zombies. The AI will be trained through reinforcement learning, being awarded positively for the duration it is able to keep the target alive and negatively when the target perishes. The eventual goal is to be able to have the AI act as a sentry and shield a point of interest from harm for a user, allowing said user to tend to other matters while either preventing or at least delaying the target's demise.
 
@@ -45,5 +47,10 @@ our reward function.
 # Evaluation
 Our project is still a work in progress. While not ideal, we have been able to get our AI to find its way towards villager and zombie. Initially, the AI moves around in what seems like random directions, often away from the villager as it is being attack by the zombie. However, it has been able to learn to improve its score by decreasing the distance between itself and the other entities. Although it does not consistently attack the zombie, our AI is at least able to move to the location of the target. After over a hundred episodes, the AI has shown much improvement over its initial movement patterns, consistently heading towards the target over several consecutive episodes. 
 
-![Distance Plot](https://github.com/IanSchweer/CS175/docs/distance.png)
+![Distance Plot](https://github.com/IanSchweer/CS175/blob/master/docs/distance.png)
+The image above is a plot of the average change in distance (between player and zombie) between actions over 300 episodes. Towards the earlier episodes, the AI has a much higher positive average, indicating that the AI is moving farther from the zombie as well as the villager it is attacking. However, we can see that there is improvement after each episode. The averages eventually become negative, which shows that the AI is able to decrease the distance between it and the zombie with each action over time.
+
+![Time Plot](https://github.com/IanSchweer/CS175/blob/master/docs/time.png)
+
+
 # Remaining Goals and Challenges
