@@ -47,11 +47,11 @@ our reward function.
 # Evaluation
 Our project is still a work in progress. While not ideal, we have been able to get our AI to find its way towards villager and zombie. Initially, the AI moves around in what seems like random directions, often away from the villager as it is being attack by the zombie. However, it has been able to learn to improve its score by decreasing the distance between itself and the other entities. Although it does not consistently attack the zombie, our AI is at least able to move to the location of the target. After over a hundred episodes, the AI has shown much improvement over its initial movement patterns, consistently heading towards the target over several consecutive episodes.
 
-![Distance Plot](img/distance.png)
+![Distance Plot](img/distance.png){: width:"538" height:"893px"}
 The image above is a plot of the average change in distance (between player and zombie) between actions over 300 episodes. Towards the earlier episodes, the AI has a much higher positive average, indicating that the AI is moving farther from the zombie as well as the villager it is attacking. However, we can see that there is improvement after each episode. The averages eventually become negative, which shows that the AI is able to decrease the distance between it and the zombie with each action over time.
 
-![Time Plot](img/time.png)
-![Reward Plot](img/reward.png)
+![Time Plot](img/time.png){: width:"538" height:"893px"}
+![Reward Plot](img/reward.png){: width:"538" height:"893px"}
 The two plots show the time the villager stays alive in each episode and the reward at the end of each episode. At the moment, there is not a whole lot of change as the AI progresses through each episode. Since the AI does not yet protect the villager by attacking the zombie, the villager dies after an average of about 5 seconds in real time. Also, ignoring the episodes with reward near 0 (since the villager dies in all episodes), the reward sits around -10000 due to the death of the villager. The rewards plot fluctuates slightly due to the distance affecting the reward.
 
 # Remaining Goals and Challenges
