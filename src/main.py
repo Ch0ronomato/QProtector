@@ -24,7 +24,7 @@ ARENA_BREADTH = 60
 PROTECTEE = 'Villager'
 ENEMY = 'Zombie'
 
-ACTIONS = ['up', 'down', 'left', 'right', 'swing']
+ACTIONS = ['up', 'down', 'turn-left', 'turn-right', 'swing']
 
 def getCorner(index,top,left,expand=0,y=206):
     ''' Return part of the XML string that defines the requested corner'''
@@ -165,11 +165,11 @@ class Protector(object):
 
     def is_solution(reward):
         """If the reward equals to the maximum reward possible returns True, False otherwise. """
-        return reward == 10000
+        return reward == 100
 
     def get_possible_actions(self):
         """Returns all possible actions that can be done at the current state. """
-        return ['up', 'down', 'left', 'right', 'swing']
+        return ['up', 'down', 'turn-left', 'turn-right', 'swing']
 
     def get_curr_state(self, agent_host):
         """Creates a unique identifier for a state.
@@ -203,8 +203,8 @@ class Protector(object):
             return list[index][0]
 
     def act(self, agent_host, action, entities):
-        print action
-        print action + ",",
+        print "===", action, "==="
+        
         # if action == 'present_gift':
         #     return self.present_gift(agent_host)
         # elif action.startswith('c_'):
@@ -215,7 +215,7 @@ class Protector(object):
             self.move(action, agent_host)
         else:
             self.attack(agent_host)
-        return self.score(entities)
+        return self.score(entities, action)
 
     def move(self, action, agent_host):
         if action == 'up':
@@ -226,11 +226,15 @@ class Protector(object):
             agent_host.sendCommand('strafe 1')
         elif action == 'right':
             agent_host.sendCommand('strafe -1')
+        elif action == 'turn-right':
+            agent_host.sendCommand('turn 1')
+        elif action == 'turn-left':
+            agent_host.sendCommand('turn -1')
 
     def attack(self, agent_host):
         agent_host.sendCommand('attack 1')
 
-    def score(self, entities):
+    def score(self, entities, action):
         '''
         A dummy reward function. High if no zombies, but villager is alive, very negative if the opposite
         :param entities:
@@ -240,6 +244,7 @@ class Protector(object):
         state = self.position_states(entities)
         zx, zz = 0., 0.
         vx, vz = 0., 0.
+
         for ent in entities:
             if ent['name'] == PROTECTEE:
                 #Negative reward based on damage villager has taken
@@ -248,7 +253,7 @@ class Protector(object):
                 vz -= ent['z']
             elif ent['name'] == ENEMY:
                 #Positive reward based on damage to the zombie
-                score -= (ent['life'] - 20)*10
+                score -= (ent['life'] - 20)*2
                 zx -= ent['x']
                 zz -= ent['z']
             elif ent['name'] == 'The Hunted':
@@ -256,18 +261,33 @@ class Protector(object):
                 zz += ent['z']
                 vx += ent['x']
                 vz += ent['z']
+
         zdistance = math.sqrt((zx**2) + (zz**2))
         vdistance = math.sqrt((vx**2) + (vz**2))
         # save the episode's distance between player and zombie
         self.distances.append(zdistance)
         print "ZOMB DISTANCE:", zdistance
         print "VILL DISTANCE:", vdistance
-        score -= (2 * zdistance) - 0.3 
-        score -= vdistance     
+
+        score -= abs(zx)
+        score -= abs(zz)
+        score -= abs(vx)
+        score -= abs(vz)
+
+        #score -= zdistance    
+        #score -= vdistance * 0.5 
+
+        if action in ['up', 'down']:
+            score -= 1
+        elif action in ['turn-left', 'turn-right']:
+            score -= 1
+        elif action == 'swing':
+            score -= 5
+
         if not self.has(entities, PROTECTEE):
-            score -= 10000
+           score -= 100
         if not self.has(entities, ENEMY):
-            score += 10000
+            score += 100
         return score
 
     def update_q_table(self, tau, S, A, R, T):
@@ -323,9 +343,9 @@ class Protector(object):
                     s = self.get_curr_state(entities)
 
                     print "Took action ", A[-1], " at state ", S[-1], " got reward ", current_r
-                    if current_r <= -10000 or current_r >= 10000 or not world_state.is_mission_running:
+                    if current_r <= -100 or current_r >= 100 or not world_state.is_mission_running:
                         # Terminating state
-                        print " <= -10000 got triggered"
+                        print " <= -100 got triggered"
                         T = t + 1
                         S.append('Term State')
                         present_reward = current_r
@@ -484,6 +504,7 @@ def GetMissionXML(summary):
 
         <ModSettings>
             <MsPerTick>20</MsPerTick>
+            <PrioritiseOffscreenRendering>0</PrioritiseOffscreenRendering>
         </ModSettings>
         <ServerSection>
             <ServerInitialConditions>
@@ -563,7 +584,7 @@ if __name__ == '__main__':
     for iRepeat in range(num_reps):
         my_mission = MalmoPython.MissionSpec(GetMissionXML("Defend #" + str(iRepeat)), True)
         my_mission_record = MalmoPython.MissionRecordSpec()  # Records nothing by default
-        my_mission.requestVideo(800, 500)
+        my_mission.requestVideo(1280, 720)
         my_mission.setViewpoint(0)
         max_retries = 3
         for retry in range(max_retries):
