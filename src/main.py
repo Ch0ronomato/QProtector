@@ -222,13 +222,13 @@ class Protector(object):
             agent_host.sendCommand('move 1')
         elif action == 'down':
             agent_host.sendCommand('move -1')
-        elif action == 'turn-left':
+        elif action == 'left':
             agent_host.sendCommand('strafe 1')
-        elif action == 'turn-right':
+        elif action == 'right':
             agent_host.sendCommand('strafe -1')
-        elif action == 'turn-righat':
+        elif action == 'turn-right':
             agent_host.sendCommand('turn 1')
-        elif action == 'turn-lefta':
+        elif action == 'turn-left':
             agent_host.sendCommand('turn -1')
 
     def get_closest_enemy(self, entities):
