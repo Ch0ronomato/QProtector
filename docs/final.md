@@ -8,6 +8,9 @@ title:  Final Report
 [![Description of the Video](https://img.youtube.com/vi/FI3aW0RabBg/0.jpg)](https://www.youtube.com/watch?v=FI3aW0RabBg)
 
 ## Project Summary
+For our project we set out with the goal to create an AI that would protect an entity in MineCraft. We saw a problem in MineCraft that if you were not in Creative Mode you could be attacked by other creates, what we wanted to do was create an AI that would protect an entity for other creatures.
+This idea was put into practice by us creating an AI through Malmo that would allow us to protect a Villager from a Zombie that wanted to attack it, thus we created QProtector.
+The setup of QProtector is us putting an ususpecting Villager into an arena with a Zombie that wants to kill it. Our agent is also spawned inside the region and given the task of keeping the Villager safe and dispatching the Zombie.
 
 
 ## Approaches
