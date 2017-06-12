@@ -233,7 +233,7 @@ class Protector(object):
 
     def get_closest_enemy(self, entities):
         # find me
-        me,them = [],(sys.maxint,[])
+        me,them = {'x': 0.0, 'z': 0.0},(sys.maxint,{'x': 0.0, 'z': 0.0})
         for entity in entities:
             if entity['name'] == 'The Hunted':
                 me = entity
