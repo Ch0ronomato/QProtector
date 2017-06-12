@@ -204,7 +204,7 @@ class Protector(object):
 
     def act(self, agent_host, action, entities):
         print "===", action, "==="
-        
+
         # if action == 'present_gift':
         #     return self.present_gift(agent_host)
         # elif action.startswith('c_'):
@@ -274,8 +274,8 @@ class Protector(object):
         score -= abs(vx)
         score -= abs(vz)
 
-        #score -= zdistance    
-        #score -= vdistance * 0.5 
+        #score -= zdistance
+        #score -= vdistance * 0.5
 
         if action in ['up', 'down']:
             score -= 1
@@ -314,7 +314,7 @@ class Protector(object):
         done_update = False
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
         agent_host.sendCommand("hotbar.9 0")  # Release hotbar key - agent should now be holding diamond_pickaxe
-        
+
         # Episode start time
         start_time = time.time()
 
@@ -520,7 +520,7 @@ def GetMissionXML(summary):
                     <DrawCuboid ''' + getCorner("1",True,True,expand=1) + " " + getCorner("2",False,False,y=226,expand=1) + ''' type="stone"/>
                     <DrawCuboid ''' + getCorner("1",True,True,y=207) + " " + getCorner("2",False,False,y=226) + ''' type="air"/>
 
-                    <DrawEntity x="20.5" y="207.0" z="20.5" type="Zombie" />
+                    <!-- <DrawEntity x="20.5" y="207.0" z="20.5" type="Zombie" /> -->
                 </DrawingDecorator>
                 <ServerQuitWhenAnyAgentFinishes />
                 <ServerQuitFromTimeUp timeLimitMs="30000"/>
@@ -605,8 +605,14 @@ if __name__ == '__main__':
             time.sleep(0.1)
             world_state = agent_host.getWorldState()
         print "started"
-        agent_host.sendCommand("chat /summon Villager ~10 ~ ~ {NoAI:1}")
 
+        villager_x = random.randint(4,26)
+        villager_z = random.randint(4,26)
+        zombie_x = random.randint(4,26)
+        zombie_z = random.randint(4,26)
+
+        agent_host.sendCommand("chat /summon Villager "+ str(villager_x) +" 207.0 " +str(villager_z) + " {NoAI:1}")
+        agent_host.sendCommand("chat /summon Zombie " + str(zombie_x) + " 207.0 " + str(zombie_z))
         #agent_host.sendCommand("chat /effect @p resistance 99999 255")
         agent_host.sendCommand("chat /effect @p invisibility 99999 255")
         agent_host.sendCommand("hotbar.9 1")  # Press the hotbar key
@@ -617,7 +623,7 @@ if __name__ == '__main__':
             ai.run(agent_host)
             time.sleep(0.1)
             world_state = agent_host.getWorldState()
-       
+
 
         # Every few iteration Chester will show us the best policy that he learned.
         # if (iRepeat + 1) % 5 == 0:
