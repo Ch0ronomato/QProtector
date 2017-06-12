@@ -214,7 +214,7 @@ class Protector(object):
         if not action == 'swing':
             self.move(action, agent_host)
         else:
-            self.attack(agent_host)
+            self.attack(agent_host, entities)
         return self.score(entities, action)
 
     def move(self, action, agent_host):
@@ -222,16 +222,44 @@ class Protector(object):
             agent_host.sendCommand('move 1')
         elif action == 'down':
             agent_host.sendCommand('move -1')
-        elif action == 'left':
-            agent_host.sendCommand('strafe 1')
-        elif action == 'right':
-            agent_host.sendCommand('strafe -1')
-        elif action == 'turn-right':
-            agent_host.sendCommand('turn 1')
         elif action == 'turn-left':
+            agent_host.sendCommand('strafe 1')
+        elif action == 'turn-right':
+            agent_host.sendCommand('strafe -1')
+        elif action == 'turn-righat':
+            agent_host.sendCommand('turn 1')
+        elif action == 'turn-lefta':
             agent_host.sendCommand('turn -1')
 
-    def attack(self, agent_host):
+    def get_closest_enemy(self, entities):
+        # find me
+        me,them = [],(sys.maxint,[])
+        for entity in entities:
+            if entity['name'] == 'The Hunted':
+                me = entity
+                break
+        for entity in entities:
+            if entity['name'] == ENEMY:
+                dist = math.sqrt(((entity['x'] - me['x'])**2 + (entity['x'] - me['x'])**2))
+                if dist < them[0]:
+                    them = (dist, entity)
+        return me, them[1]
+
+    def attack(self, agent_host, entities):
+        ''' Calc turn speed required to steer "us" towards "them".'''
+        us,them = self.get_closest_enemy(entities)
+        dx = them['x'] - us['x']
+        dz = them['z'] - us['z']
+        yaw = math.atan2(dz, dx) * (180 / math.pi)
+        while yaw < -180:
+            yaw += 360;
+        while yaw > 180:
+            yaw -= 360;
+        yaw /= 180.0
+        print "turning " + str(yaw) + " degrees"
+        agent_host.sendCommand('turn ' + str(yaw))
+        time.sleep(.01)
+        agent_host.sendCommand('turn 0')
         agent_host.sendCommand('attack 1')
 
     def score(self, entities, action):
