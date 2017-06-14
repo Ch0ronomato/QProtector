@@ -43,21 +43,26 @@ Our reward function has a couple of considerations:
 5. Is the health of the Protectee lowering, if so give negative reward
 
 With this reward function we have had our AI begin to run towards the rescue of the Protectee, we are now begining to get it in range of attacking the zombie. The attacks are sporadic at this point, however our previous model failed to be aggressive against zombies. This required us to alter our reward function to give our AI a better indicator that we needed to kill the zombie. For this, we made two major changes:
-1. Whenever a swing occurs, face the nearest zombie to ensure a hit. While doing this, we were able to change our action space from strafing to turning left and right. 
-2. Edit the reward function to swing more frequent, by having a slightly less negative reward, and rewarding for swings that hit zombie, regardless of if they kill.. This required us to re-evalute our initial reward values. Initially, we would have values of roughly 10k, or -10k. It was a binary reward in essence. To achieve wanting to swing, we had to discretize the reward function in order to have a sort of vary degrees of success and failure. 
+1. Whenever a swing occurs, face the nearest zombie to ensure a hit. While doing this, we were able to change our action space from strafing to turning left and right.
+2. Edit the reward function to swing more frequent, by having a slightly less negative reward, and rewarding for swings that hit zombie, regardless of if they kill.. This required us to re-evalute our initial reward values. Initially, we would have values of roughly 10k, or -10k. It was a binary reward in essence. To achieve wanting to swing, we had to discretize the reward function in order to have a sort of vary degrees of success and failure.
 
 
 As mentioned earlier in the evaluation section we are now using an value approximation function, through the use of a Stochastic Gradient Descent Regressor built into sklearn.
 We are using this as it is faster to train on a larger state space as it does not take into account each state and hold each state but come up with an approximation of what an
-optimal state would be. This has resulted so far in slightly better training. We have worked on tweaking some of the features in the sklearn models, but we ended up utilizing the sklearn pipeline libraries because our AI seemed to achieved our desired goal much faster than the home-brewed features we had before. This would in turn have us transform the 4 features stated above, into a set of parameters defined by sklearn. Then we adjusted the gamma component parameters, using the reward function as our metric for determining better features. 
+optimal state would be. This has resulted so far in slightly better training. We have worked on tweaking some of the features in the sklearn models, but we ended up utilizing the sklearn pipeline libraries because our AI seemed to achieved our desired goal much faster than the home-brewed features we had before. This would in turn have us transform the 4 features stated above, into a set of parameters defined by sklearn. Then we adjusted the gamma component parameters, using the reward function as our metric for determining better features.
 
 ## Evaluation
-Similar to before, the AI initially moves around in what seems like random directions, often away from the villager as it is being attack by the zombie. However, it has been able to learn to improve its score by decreasing the distance between itself and the other entities. Once the villager has a run of both getting close to our villager and swinging, we can see the AI prefers to kill zombies, while being close to the villager (occassionally swinging at the villager as well). 
+Similar to before, the AI initially moves around in what seems like random directions, often away from the villager as it is being attack by the zombie. However, it has been able to learn to improve its score by decreasing the distance between itself and the other entities. Once the villager has a run of both getting close to our villager and swinging, we can see the AI prefers to kill zombies, while being close to the villager (occassionally swinging at the villager as well).
+
+#### He's Going the Distance
+![Distance Plot](img/final_distance.png)
 
 The image above is a plot of the average change in distance (between player and zombie) between actions over PUT NUMBER IN HERE episodes. Towards the earlier episodes, the AI has a much higher positive average, indicating that the AI is moving farther from the villager as well as the zombie it is attacking. However, we can see that there is improvement after each episode. The averages eventually become negative, which shows that the AI is able to decrease the distance between it and the zombie with each action over time.
 
+![Time Plot](img/final_time.png)
+![Reward Plot](img/final_reward.png)
 
-The two plots show the time the villager stays alive in each episode and the reward at the end of each episode. With the changes to the reward function, we can better estimate the progress of our bot as he begins to understand his mission. We can see that the reward starts very negative, because the bot is almost randomly doing actions to better understand the policy. We see after time that our reward function begins to increase. Eventually, we can see a spike where he both killed the zombie, and kept the villager alive throughout the episode.
+The two plots show the time the villager stays alive in each episode and the reward at the end of each episode. With the changes to the reward function, we can better estimate the progress of our bot as he begins to understand his mission. We can see that the reward starts very negative, because the bot is almost randomly doing actions to better understand the policy. We see after time that our reward function begins to increase. Eventually, we can see spikes where he both killed the zombie, and kept the villager alive throughout the episode.
 
 ## References
 For an example of Function Approximation using Stochastic Gradient Descent we used the following [Github Repo](https://github.com/dennybritz/reinforcement-learning/blob/master/FA/Q-Learning%20with%20Value%20Function%20Approximation%20Solution.ipynb).
