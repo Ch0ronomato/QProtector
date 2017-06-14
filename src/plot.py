@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-data_file = "reward.txt"
+data_file = "time.txt"
 
 f = open(data_file)
 # d = [float(y) for x in f.readlines() for y in x.split(',')]
