@@ -4,8 +4,11 @@ title:  Final Report
 ---
 
 ## Video
+__QProtector explaination__
+[![Description of the Video](https://img.youtube.com/vi/cCukw-aNZqQ/0.jpg)](https://www.youtube.com/watch?v=cCukw-aNZqQ)
+__QProtector Demo__
+[![Description of the Video](https://img.youtube.com/vi/-CEZVFLR7oA/0.jpg)](https://www.youtube.com/watch?v=-CEZVFLR7oA)
 
-[![Description of the Video](https://img.youtube.com/vi/FI3aW0RabBg/0.jpg)](https://www.youtube.com/watch?v=FI3aW0RabBg)
 
 ## Project Summary
 For our project we set out with the goal to create an AI that would protect an entity in MineCraft. We saw a problem in MineCraft that if you were not in Creative Mode you could be attacked by other creates, what we wanted to do was create an AI that would protect an entity for other creatures.
