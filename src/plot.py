@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-data_file = "distance.txt"
+data_file = "reward.txt"
 
 f = open(data_file)
 # d = [float(y) for x in f.readlines() for y in x.split(',')]
@@ -20,11 +20,14 @@ plt.xlabel("iteration number")
 
 if data_file == "reward.txt":
   plt.ylabel("reward")
+  plt.title("reward over time")
 
 if data_file == "distance.txt":
   plt.ylabel("distance")
+  plt.title("distance away from enemy over time")
 
 if data_file == "time.txt":
   plt.ylabel("seconds")
+  plt.title("amount of time villager is alive over time")
 
 plt.show()
