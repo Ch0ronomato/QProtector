@@ -5,10 +5,12 @@ title:  Final Report
 
 ## Video
 __QProtector explaination__
+
 [![Description of the Video](https://img.youtube.com/vi/cCukw-aNZqQ/0.jpg)](https://www.youtube.com/watch?v=cCukw-aNZqQ)
 
 
 __QProtector Demo__
+
 [![Description of the Video](https://img.youtube.com/vi/-CEZVFLR7oA/0.jpg)](https://www.youtube.com/watch?v=-CEZVFLR7oA)
 
 
